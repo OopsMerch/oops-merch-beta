@@ -27,9 +27,11 @@ const legacyProductsData = JSON.stringify(allProducts.map(p => ({ ...p.data, slu
 <body class="preload">
     <Header />
     <SideMenu />
+    
     <main class="main-content" transition:animate="fade">
         <slot />
     </main>
+    
     <Cart />
     <div class="menu-overlay"></div>
     
@@ -43,8 +45,11 @@ const legacyProductsData = JSON.stringify(allProducts.map(p => ({ ...p.data, slu
             <div style="font-size:3rem; margin-bottom:20px;">🔒</div>
             <h2 style="margin-bottom:10px; font-weight:800; letter-spacing:1px;">OOPS BETA</h2>
             <p style="margin-bottom:25px; color:#888;">Доступ для тестеров</p>
+            
             <input type="text" id="beta-pass" placeholder="Код доступа" autocomplete="off" style="width:100%; padding:14px; border-radius:12px; border:1px solid #333; background:#111; color:#fff; outline:none; text-align:center; margin-bottom:15px; font-size:1.1rem; font-weight:600;">
+            
             <button id="beta-btn" style="width:100%; padding:14px; background:#fff; color:#000; font-weight:700; border:none; border-radius:12px; cursor:pointer;">ОТКРЫТЬ</button>
+            
             <p id="beta-error" style="color:#ff4444; margin-top:15px; display:none;">Неверный код</p>
         </div>
     </div>
@@ -56,38 +61,57 @@ const legacyProductsData = JSON.stringify(allProducts.map(p => ({ ...p.data, slu
             const btn = document.getElementById('beta-btn');
             const error = document.getElementById('beta-error');
 
+            // Если элементов нет (ошибка верстки), выходим
+            if (!overlay || !input || !btn) return;
+
+            // 1. Проверяем сохраненный доступ
             if (localStorage.getItem('oops_beta_access') === 'granted') {
-                if(overlay) overlay.style.display = 'none';
+                overlay.style.display = 'none';
                 document.body.style.overflow = '';
                 return;
             } else {
-                if(overlay) overlay.style.display = 'flex';
+                overlay.style.display = 'flex';
                 document.body.style.overflow = 'hidden';
             }
 
+            // 2. Логика открытия
             const unlock = () => {
-                // .trim() убирает пробелы по краям!
-                if (input.value.trim() === 'oops-beta-2026') {
+                // ВАЖНО: .trim() удаляет пробелы с начала и конца строки
+                const enteredPass = input.value.trim();
+                const correctPass = 'oops-beta-2026';
+
+                if (enteredPass === correctPass) {
                     localStorage.setItem('oops_beta_access', 'granted');
                     overlay.style.display = 'none';
                     document.body.style.overflow = '';
                 } else {
                     error.style.display = 'block';
                     error.innerText = 'Неверный код';
+                    input.style.borderColor = '#ff4444';
                 }
             };
 
-            // Клонируем элементы чтобы сбросить старые слушатели
+            // 3. Сбрасываем старые обработчики (клон элемента)
             const nBtn = btn.cloneNode(true);
             btn.parentNode.replaceChild(nBtn, btn);
             nBtn.addEventListener('click', unlock);
 
             const nInp = input.cloneNode(true);
             input.parentNode.replaceChild(nInp, input);
-            nInp.addEventListener('keypress', (e) => { if(e.key === 'Enter') unlock(); });
+            nInp.addEventListener('keypress', (e) => { 
+                if(e.key === 'Enter') unlock(); 
+            });
+            
+            // Фокус на поле ввода (только на десктопе, чтобы на телефоне клавиатура не прыгала)
+            if (window.innerWidth > 768) {
+                setTimeout(() => nInp.focus(), 100);
+            }
         }
 
+        // Запуск при первой загрузке
         initLock();
+        
+        // Запуск при навигации (Astro Router)
         document.addEventListener('astro:page-load', initLock);
     </script>
 </body>
