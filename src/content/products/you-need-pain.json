@@ -1,0 +1,23 @@
+{
+    "id": 1,
+    "name": "Футболка You Need Pain",
+    "price": 2990,
+    "category": "tshirt",
+    "collection": "you-need",
+    "image": "images/you-need-pain.jpg",
+    "description": "Премиальная футболка из плотного, 100% хлопка (250г/м²), оверсайз крой.",
+    "sizes": ["S", "M", "L", "XL"],
+    "composition": "Хлопок 100%",
+    "characteristics": [
+        {"name": "Страна", "value": "Россия"},
+        {"name": "Плотность", "value": "250 г/м²"},
+        {"name": "Крой", "value": "Oversize"}
+    ],
+    "gallery": [
+        "images/you-need-pain.jpg",
+        "images/photo-1.jpg",
+        "images/photo-2.jpg"
+    ],
+    "isAvailable": true,
+    "isPopular": true
+}

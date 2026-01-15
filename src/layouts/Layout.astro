@@ -1,0 +1,107 @@
+---
+import Header from '../components/Header.astro';
+import SideMenu from '../components/SideMenu.astro';
+import Cart from '../components/Cart.astro';
+import { ClientRouter } from 'astro:transitions';
+import { getCollection } from 'astro:content';
+import '../styles/style.css';
+
+const { title } = Astro.props;
+
+// ПОЛУЧАЕМ ВСЕ ТОВАРЫ ИЗ ФАЙЛОВ JSON
+const allProducts = await getCollection('products');
+const productsJSON = JSON.stringify(allProducts.map(p => ({ ...p.data, slug: p.id }))); 
+// Примечание: p.id здесь - это имя файла (slug), но в JSON у тебя id: 1.
+// Чтобы старый JS работал, мы формируем массив, похожий на старый products.js
+const legacyProductsData = JSON.stringify(allProducts.map(p => ({ ...p.data, slug: p.id })));
+---
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    
+    <ClientRouter />
+</head>
+<body class="preload">
+    <Header />
+    <SideMenu />
+    
+    <main class="main-content" transition:animate="fade">
+        <slot />
+    </main>
+    
+    <Cart />
+    <div class="menu-overlay"></div>
+    
+    <script define:vars={{ legacyProductsData }}>
+        window.productsData = JSON.parse(legacyProductsData);
+    </script>
+    <script is:inline src="/js/main.js"></script>
+
+    <div id="beta-lock-overlay" style="
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: #000; z-index: 999999; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; color: #fff;
+        font-family: 'Montserrat', sans-serif; transition: opacity 0.5s;
+    ">
+        <div style="text-align: center; max-width: 300px; padding: 20px;">
+            <div style="font-size: 3rem; margin-bottom: 20px;">🔒</div>
+            <h2 style="margin-bottom: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;">Oops Beta</h2>
+            <p style="margin-bottom: 20px; color: #666; font-size: 0.9rem;">Доступ только для тестеров</p>
+            
+            <input type="password" id="beta-pass" placeholder="Код доступа" style="
+                width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #333;
+                background: #111; color: #fff; outline: none; text-align: center; margin-bottom: 15px;
+                font-size: 1rem; font-weight: 600;
+            ">
+            <button id="beta-btn" style="
+                width: 100%; padding: 14px; background: #fff; color: #000; font-weight: 800;
+                border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase; font-size: 0.9rem;
+            ">Войти</button>
+            <p id="beta-error" style="color: #d00; margin-top: 15px; font-size: 0.8rem; display: none;">Неверный код</p>
+        </div>
+    </div>
+
+    <script is:inline>
+        (function() {
+            const overlay = document.getElementById('beta-lock-overlay');
+            const btn = document.getElementById('beta-btn');
+            const input = document.getElementById('beta-pass');
+            const error = document.getElementById('beta-error');
+            
+            // Если уже вводил - пропускаем
+            if (localStorage.getItem('oops_beta_access') === 'granted') {
+                if(overlay) overlay.style.display = 'none';
+                return;
+            }
+
+            const checkPass = () => {
+                if (input.value === 'oops-beta-2026') {
+                    localStorage.setItem('oops_beta_access', 'granted');
+                    overlay.style.opacity = '0';
+                    setTimeout(() => { overlay.style.display = 'none'; }, 500);
+                } else {
+                    error.style.display = 'block';
+                    input.style.borderColor = '#d00';
+                    setTimeout(() => { 
+                        error.style.display = 'none'; 
+                        input.style.borderColor = '#333';
+                    }, 2000);
+                }
+            };
+
+            if(btn) btn.addEventListener('click', checkPass);
+            if(input) input.addEventListener('keypress', (e) => { if(e.key === 'Enter') checkPass(); });
+        })();
+    </script>
+
+</body>
+</html>

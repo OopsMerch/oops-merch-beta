@@ -1,0 +1,22 @@
+<header class="header" id="main-header">
+    <button class="header__burger-btn" data-target="menu" data-no-copy aria-label="Открыть меню">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <a href="/" class="header__logo" id="header-logo" data-no-copy onclick="sessionStorage.removeItem('oopsFilter'); sessionStorage.removeItem('oopsType');">Oops Merch</a> 
+    
+    <div class="header__search-container" id="search-container">
+        <input type="text" class="header__search-input" id="search-input" placeholder="Поиск..." autocomplete="off">
+        <button class="header__search-close" id="search-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="header__search-results" id="search-results"></div>
+
+    <div class="header__actions">
+        <button class="header__search-btn" id="search-trigger" aria-label="Поиск">
+            <i class="fas fa-search"></i>
+        </button>
+        <a href="#" class="header__cart" data-no-copy aria-label="Корзина">
+            <i class="fas fa-shopping-bag"></i>
+        </a>
+    </div>
+</header>

@@ -1,0 +1,24 @@
+{
+    "id": 2,
+    "name": "Худи Black Edition",
+    "price": 4990,
+    "category": "hoodie",
+    "collection": "you-need",
+    "image": "images/photo-2.jpg",
+    "description": "Лимитированное худи из коллекции Black Edition. Плотный футер с начесом, идеально держит форму.",
+    "sizes": ["S", "M", "L", "XL", "XXL"],
+    "composition": "Хлопок 80%, Полиэстер 20%",
+    "characteristics": [
+        {"name": "Страна", "value": "Россия"},
+        {"name": "Плотность", "value": "340 г/м²"},
+        {"name": "Крой", "value": "Boxy Fit"},
+        {"name": "Сезон", "value": "Зима 2026"}
+    ],
+    "gallery": [
+        "images/photo-2.jpg",
+        "images/photo-1.jpg",
+        "images/you-need-pain.jpg"
+    ],
+    "isAvailable": true,
+    "isPopular": true
+}

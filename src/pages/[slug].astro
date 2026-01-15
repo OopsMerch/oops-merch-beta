@@ -1,0 +1,227 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const products = await getCollection('products');
+  return products.map(entry => ({
+    params: { slug: entry.id },
+    props: { product: entry.data, allProducts: products },
+  }));
+}
+
+const { product, allProducts } = Astro.props;
+const fixPath = (path) => path.startsWith('/') ? path : '/' + path;
+const formattedPrice = product.price.toLocaleString('ru-RU') + ' ₽';
+
+// ЛОГИКА РЕКОМЕНДАЦИЙ (ИСПРАВЛЕНА)
+// Мы берем entry.id (это имя файла, например 'black-hoodie'), а не p.data.id (цифра 2)
+const relatedProducts = allProducts
+    .filter(entry => entry.data.id !== product.id) // Не показываем текущий товар
+    .map(entry => ({
+        ...entry.data,
+        realSlug: entry.id // ВАЖНО: Сохраняем имя файла для ссылки
+    }))
+    .slice(0, 4);
+---
+
+<Layout title={`${product.name} | Oops Merch`}>
+    
+    <div id="lightbox" class="lightbox">
+        <button class="lightbox__close-btn" id="lightbox-close-btn"><i class="fas fa-times"></i></button>
+        <div class="lightbox__image-container" id="lightbox-touch-area"></div>
+        <div class="lightbox__thumbnails-wrapper">
+            <div class="lightbox__thumbnails" id="lightbox-thumbs"></div>
+        </div>
+    </div>
+
+    <div class="product-details-container">
+        <div class="product-page-content-wrapper">
+            
+            <div class="product-page__gallery-block">
+                <div class="product-page__gallery-container" id="carousel-viewport">
+                    <button class="zoom-indicator-btn" id="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                    
+                    <div class="image-carousel" id="image-carousel-track">
+                        {product.gallery.map((img) => (
+                            <div class="slider-slide" style={`background-image: url('${fixPath(img)}');`}></div>
+                        ))}
+                    </div>
+                </div>
+                
+                <div class="product-page__thumbnails" id="gallery-dots">
+                    {product.gallery.map((img, index) => (
+                        <div 
+                            class={`thumbnail-item ${index === 0 ? 'active' : ''}`} 
+                            style={`background-image: url('${fixPath(img)}');`}
+                            data-index={index}
+                        ></div>
+                    ))}
+                </div>
+            </div>
+
+            <div class="product-page__info">
+                <h1>{product.name}</h1>
+                <div class="product-page__price">{formattedPrice}</div>
+                
+                <div class="product-page__size-selector">
+                    <div class="size-selector-header"><h3>Выберите размер</h3></div>
+                    <div class="size-buttons-grid">
+                        {product.sizes.map((size) => (
+                            <button class="size-btn" onclick="window.selectSize(this)" data-size={size}>{size}</button>
+                        ))}
+                    </div>
+                    <div id="size-error" class="error-message">Пожалуйста, выберите размер</div>
+                </div>
+
+                <div class="product-actions-row">
+                     <div class="qty-selector-main">
+                        <button class="qty-btn-main" id="qty-minus">-</button>
+                        <div id="qty-val" class="qty-val-main">1</div>
+                        <button class="qty-btn-main" id="qty-plus">+</button>
+                    </div>
+                    <button id="add-to-cart-main" class="product-page__add-to-cart">Добавить в корзину</button>
+                </div>
+
+                <div class="product-page__description">{product.description}</div>
+                
+                <ul class="specs-list">
+                    {product.characteristics.map((spec) => (
+                        <li><span>{spec.name}</span><span>{spec.value}</span></li>
+                    ))}
+                </ul>
+            </div>
+        </div>
+
+        {relatedProducts.length > 0 && (
+            <section class="related-section">
+                <h2 class="related-title">Рекомендуем</h2>
+                <div class="related-grid">
+                    {relatedProducts.map((rec) => (
+                        <div class="related-card">
+                            <a href={`/${rec.realSlug}/`} class="related-card__link">
+                                <div class="related-card__img" style={`background-image: url('${fixPath(rec.image)}');`}></div>
+                                <div class="related-card__info">
+                                    <div class="related-card__name">{rec.name}</div>
+                                    <div class="related-card__price">{rec.price.toLocaleString('ru-RU')} ₽</div>
+                                </div>
+                            </a>
+                        </div>
+                    ))}
+                </div>
+            </section>
+        )}
+
+    </div>
+
+    <script define:vars={{ 
+        pId: product.id, 
+        pName: product.name, 
+        pPrice: product.price,
+        pImage: fixPath(product.image),
+        pSlug: Astro.params.slug,
+        pGallery: product.gallery.map(img => fixPath(img))
+    }}>
+        window.selectSize = (el) => {
+            document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('size-error').style.display = 'none';
+        };
+
+        document.addEventListener('astro:page-load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const fromType = params.get('from') || sessionStorage.getItem('oopsType');
+            const filterSlug = params.get('filter') || sessionStorage.getItem('oopsFilter');
+            const cleanName = pName.replace(/^Футболка\s+/i, '');
+
+            if (window.renderNavigation) {
+                window.renderNavigation(filterSlug, fromType, cleanName);
+            }
+
+            const carousel = document.getElementById('image-carousel-track');
+            const dots = document.querySelectorAll('.thumbnail-item');
+
+            if(carousel) {
+                carousel.addEventListener('scroll', () => {
+                    const width = carousel.offsetWidth;
+                    const index = Math.round(carousel.scrollLeft / width);
+                    dots.forEach((d, i) => d.classList.toggle('active', i === index));
+                });
+                dots.forEach((d, i) => {
+                    d.addEventListener('click', () => {
+                        carousel.scrollTo({ left: carousel.offsetWidth * i, behavior: 'smooth' });
+                    });
+                });
+            }
+
+            const lightbox = document.getElementById('lightbox');
+            const lbContainer = document.getElementById('lightbox-touch-area');
+            const lbThumbsContainer = document.getElementById('lightbox-thumbs');
+            
+            document.getElementById('zoom-btn')?.addEventListener('click', () => {
+                lightbox.classList.add('is-active');
+                document.body.classList.add('modal-open');
+                
+                lbContainer.innerHTML = '';
+                lbThumbsContainer.innerHTML = '';
+
+                pGallery.forEach((img, idx) => {
+                    const slide = document.createElement('div');
+                    slide.className = 'lightbox-slide';
+                    slide.style.backgroundImage = `url('${img}')`;
+                    lbContainer.appendChild(slide);
+
+                    const thumb = document.createElement('div');
+                    thumb.className = 'lightbox__thumbnail';
+                    if (idx === 0) thumb.classList.add('active');
+                    thumb.style.backgroundImage = `url('${img}')`;
+                    thumb.onclick = () => lbContainer.scrollTo({ left: lbContainer.offsetWidth * idx, behavior: 'smooth' });
+                    lbThumbsContainer.appendChild(thumb);
+                });
+                
+                const currentIdx = Math.round(carousel.scrollLeft / carousel.offsetWidth);
+                setTimeout(() => lbContainer.scrollTo({ left: lbContainer.offsetWidth * currentIdx, behavior: 'auto' }), 50);
+
+                lbContainer.addEventListener('scroll', () => {
+                   const index = Math.round(lbContainer.scrollLeft / lbContainer.offsetWidth);
+                   const all = lbThumbsContainer.querySelectorAll('.lightbox__thumbnail');
+                   all.forEach((t, i) => t.classList.toggle('active', i === index));
+                });
+            });
+
+            document.getElementById('lightbox-close-btn')?.addEventListener('click', () => {
+                lightbox.classList.remove('is-active');
+                document.body.classList.remove('modal-open');
+            });
+
+            const btn = document.getElementById('add-to-cart-main');
+            const qtyVal = document.getElementById('qty-val');
+            
+            if(btn) {
+                btn.addEventListener('click', () => {
+                    const sizeEl = document.querySelector('.size-btn.active');
+                    if (!sizeEl) { 
+                        document.getElementById('size-error').style.display = 'block'; 
+                        return; 
+                    }
+                    const qty = parseInt(qtyVal.innerText);
+                    if (window.addToCartGlobal) {
+                        window.addToCartGlobal({
+                            id: pId, name: pName, price: pPrice,
+                            size: sizeEl.getAttribute('data-size'),
+                            quantity: qty,
+                            imagePathRaw: pImage,
+                            productUrlRaw: '/' + pSlug + '/'
+                        });
+                        const t = btn.innerText;
+                        btn.innerText = 'Добавлено!';
+                        btn.style.background = '#4CAF50';
+                        setTimeout(() => { btn.innerText = t; btn.style.background = '#111'; }, 1000);
+                    }
+                });
+            }
+            document.getElementById('qty-minus').onclick = () => { let v = parseInt(qtyVal.innerText) - 1; if(v<1)v=1; qtyVal.innerText = v; };
+            document.getElementById('qty-plus').onclick = () => { qtyVal.innerText = parseInt(qtyVal.innerText) + 1; };
+        });
+    </script>
+</Layout>

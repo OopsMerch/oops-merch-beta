@@ -1,16 +1,35 @@
 ---
-
+import Layout from '../layouts/Layout.astro';
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout title="Oops Merch | Премиальный магазин одежды">
+    <div id="home-view">
+        <section class="hero-section">
+            <div id="hero-slider-container" class="hero-container"></div>
+        </section>
+
+        <section class="categories-section"> 
+            <div class="catalog-header-toggle left-align" id="home-category-title">
+                <span id="mode-btn-cats" class="mode-title active" onclick="window.switchCatalogMode('categories')" data-no-copy>КАТЕГОРИИ</span>
+                <i id="mode-separator" class="fas fa-chevron-right mode-arrow"></i>
+                <span id="mode-btn-cols" class="mode-title inactive" onclick="window.switchCatalogMode('collections')" data-no-copy>КОЛЛЕКЦИИ</span>
+            </div>
+            <div id="buttons-grid-cats" class="category-buttons-grid left-align">
+                <button onclick="window.filterProducts('all', 'category')" class="category-btn active" data-slug="all">ВСЕ</button>
+                <button onclick="window.filterProducts('hoodie', 'category')" class="category-btn" data-slug="hoodie">ХУДИ</button>
+                <button onclick="window.filterProducts('zip-hoodie', 'category')" class="category-btn" data-slug="zip-hoodie">ЗИП-ХУДИ</button>
+                <button onclick="window.filterProducts('tshirt', 'category')" class="category-btn" data-slug="tshirt">ФУТБОЛКИ</button>
+                <button onclick="window.filterProducts('long-sleeve', 'category')" class="category-btn" data-slug="long-sleeve">ЛОНГСЛИВЫ</button>
+                <button onclick="window.filterProducts('sweatshirt', 'category')" class="category-btn" data-slug="sweatshirt">СВИТШОТЫ</button>
+            </div>
+            <div id="buttons-grid-cols" class="category-buttons-grid left-align" style="display: none;">
+                <button onclick="window.filterProducts('you-need', 'collection')" class="category-btn active" data-slug="you-need">YOU NEED</button>
+            </div>
+        </section>
+
+        <section class="popular-products">
+            <h2 class="section-title left-align" id="products-list-title">ПОПУЛЯРНЫЕ ТОВАРЫ</h2>
+            <div class="products-grid" id="products-grid"></div>
+        </section>
+    </div>
+</Layout>
