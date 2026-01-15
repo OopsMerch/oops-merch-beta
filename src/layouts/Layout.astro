@@ -25,13 +25,30 @@ const legacyProductsData = JSON.stringify(allProducts.map(p => ({ ...p.data, slu
     <ClientRouter />
 </head>
 <body class="preload">
+    <script is:inline>
+        // Функция: Уничтожить замок, если есть доступ
+        function nukeLock() {
+            const token = localStorage.getItem('oops_beta_token');
+            const lock = document.getElementById('fatal-lock');
+            
+            if (token === 'granted' && lock) {
+                lock.remove(); // ФИЗИЧЕСКОЕ УДАЛЕНИЕ ЗАМКА ИЗ DOM
+                document.body.style.overflow = ''; // Разрешаем прокрутку
+            } else if (!token && lock) {
+                lock.style.display = 'flex'; // Показываем замок
+                document.body.style.overflow = 'hidden'; // Блокируем прокрутку
+            }
+        }
+        // Запускаем немедленно
+        document.addEventListener('astro:page-load', nukeLock);
+        document.addEventListener('DOMContentLoaded', nukeLock);
+    </script>
+
     <Header />
     <SideMenu />
-    
     <main class="main-content" transition:animate="fade">
         <slot />
     </main>
-    
     <Cart />
     <div class="menu-overlay"></div>
     
@@ -40,79 +57,67 @@ const legacyProductsData = JSON.stringify(allProducts.map(p => ({ ...p.data, slu
     </script>
     <script is:inline src="/js/main.js"></script>
 
-    <div id="beta-lock-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:2147483647; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-family:'Montserrat',sans-serif;">
-        <div style="text-align:center; max-width:320px; padding:20px;">
-            <div style="font-size:3rem; margin-bottom:20px;">🔒</div>
-            <h2 style="margin-bottom:10px; font-weight:800; letter-spacing:1px;">OOPS BETA</h2>
-            <p style="margin-bottom:25px; color:#888;">Доступ для тестеров</p>
+    <div id="fatal-lock" style="
+        display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: #000; z-index: 2147483647; flex-direction: column;
+        align-items: center; justify-content: center; color: #fff;
+        font-family: 'Montserrat', sans-serif;
+    ">
+        <div style="text-align: center; max-width: 320px; padding: 20px;">
+            <div style="font-size: 3rem; margin-bottom: 20px;">🔒</div>
+            <h2 style="margin-bottom: 10px; font-weight: 800; letter-spacing: 1px;">OOPS BETA</h2>
             
-            <input type="text" id="beta-pass" placeholder="Код доступа" autocomplete="off" style="width:100%; padding:14px; border-radius:12px; border:1px solid #333; background:#111; color:#fff; outline:none; text-align:center; margin-bottom:15px; font-size:1.1rem; font-weight:600;">
-            
-            <button id="beta-btn" style="width:100%; padding:14px; background:#fff; color:#000; font-weight:700; border:none; border-radius:12px; cursor:pointer;">ОТКРЫТЬ</button>
-            
-            <p id="beta-error" style="color:#ff4444; margin-top:15px; display:none;">Неверный код</p>
+            <input type="text" id="pass-input" placeholder="Код доступа" autocomplete="off" style="
+                width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #333;
+                background: #111; color: #fff; outline: none; text-align: center; margin-bottom: 15px;
+                font-size: 1.1rem; font-weight: 600;
+            ">
+            <button id="pass-btn" style="
+                width: 100%; padding: 14px; background: #fff; color: #000; font-weight: 700;
+                border: none; border-radius: 12px; cursor: pointer;
+            ">ВОЙТИ</button>
+            <p id="pass-error" style="color: #ff4444; margin-top: 15px; display: none;">НЕВЕРНЫЙ КОД</p>
         </div>
     </div>
 
     <script is:inline>
-        function initLock() {
-            const overlay = document.getElementById('beta-lock-overlay');
-            const input = document.getElementById('beta-pass');
-            const btn = document.getElementById('beta-btn');
-            const error = document.getElementById('beta-error');
+        // Логика ввода пароля
+        function setupAuth() {
+            const btn = document.getElementById('pass-btn');
+            const inp = document.getElementById('pass-input');
+            const err = document.getElementById('pass-error');
+            
+            if(!btn || !inp) return;
 
-            // Если элементов нет (ошибка верстки), выходим
-            if (!overlay || !input || !btn) return;
+            // Сброс клонированием (чтобы не дублировались клики)
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            const newInp = inp.cloneNode(true);
+            inp.parentNode.replaceChild(newInp, inp);
 
-            // 1. Проверяем сохраненный доступ
-            if (localStorage.getItem('oops_beta_access') === 'granted') {
-                overlay.style.display = 'none';
-                document.body.style.overflow = '';
-                return;
-            } else {
-                overlay.style.display = 'flex';
-                document.body.style.overflow = 'hidden';
-            }
-
-            // 2. Логика открытия
-            const unlock = () => {
-                // ВАЖНО: .trim() удаляет пробелы с начала и конца строки
-                const enteredPass = input.value.trim();
-                const correctPass = 'oops-beta-2026';
-
-                if (enteredPass === correctPass) {
-                    localStorage.setItem('oops_beta_access', 'granted');
-                    overlay.style.display = 'none';
-                    document.body.style.overflow = '';
+            const tryLogin = () => {
+                // TRIM ВАЖЕН: убирает пробелы, которые ставит телефон
+                if (newInp.value.trim() === 'oops-beta-2026') {
+                    localStorage.setItem('oops_beta_token', 'granted');
+                    // ПЕРЕЗАГРУЗКА: Гарантирует, что скрипт nukeLock сработает чисто
+                    window.location.reload(); 
                 } else {
-                    error.style.display = 'block';
-                    error.innerText = 'Неверный код';
-                    input.style.borderColor = '#ff4444';
+                    err.style.display = 'block';
+                    setTimeout(() => err.style.display = 'none', 2000);
                 }
             };
 
-            // 3. Сбрасываем старые обработчики (клон элемента)
-            const nBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(nBtn, btn);
-            nBtn.addEventListener('click', unlock);
-
-            const nInp = input.cloneNode(true);
-            input.parentNode.replaceChild(nInp, input);
-            nInp.addEventListener('keypress', (e) => { 
-                if(e.key === 'Enter') unlock(); 
-            });
+            newBtn.addEventListener('click', tryLogin);
+            newInp.addEventListener('keypress', (e) => { if(e.key === 'Enter') tryLogin(); });
             
-            // Фокус на поле ввода (только на десктопе, чтобы на телефоне клавиатура не прыгала)
-            if (window.innerWidth > 768) {
-                setTimeout(() => nInp.focus(), 100);
-            }
+            // Проверка при старте
+            nukeLock();
         }
 
-        // Запуск при первой загрузке
-        initLock();
-        
-        // Запуск при навигации (Astro Router)
-        document.addEventListener('astro:page-load', initLock);
+        setupAuth();
+        document.addEventListener('astro:page-load', setupAuth);
+        nukeLock(); // Контрольный выстрел
     </script>
 </body>
 </html>
