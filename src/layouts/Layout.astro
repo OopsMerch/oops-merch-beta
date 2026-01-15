@@ -7,10 +7,7 @@ import { getCollection } from 'astro:content';
 import '../styles/style.css';
 
 const { title } = Astro.props;
-
-// ПОЛУЧАЕМ ВСЕ ТОВАРЫ ДЛЯ JS
 const allProducts = await getCollection('products');
-// Формируем массив для старых скриптов
 const legacyProductsData = JSON.stringify(allProducts.map(p => ({ ...p.data, slug: p.id })));
 ---
 
@@ -25,17 +22,14 @@ const legacyProductsData = JSON.stringify(allProducts.map(p => ({ ...p.data, slu
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
-    
     <ClientRouter />
 </head>
 <body class="preload">
     <Header />
     <SideMenu />
-    
     <main class="main-content" transition:animate="fade">
         <slot />
     </main>
-    
     <Cart />
     <div class="menu-overlay"></div>
     
@@ -44,102 +38,57 @@ const legacyProductsData = JSON.stringify(allProducts.map(p => ({ ...p.data, slu
     </script>
     <script is:inline src="/js/main.js"></script>
 
-    <div id="beta-lock-overlay" style="
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: #000; z-index: 2147483647;
-        display: none; /* Скрыт по умолчанию, скрипт сам покажет если надо */
-        flex-direction: column;
-        align-items: center; justify-content: center; color: #fff;
-        font-family: 'Montserrat', sans-serif; transition: opacity 0.4s ease;
-    ">
-        <div style="text-align: center; max-width: 320px; padding: 20px;">
-            <div style="font-size: 3rem; margin-bottom: 20px;">🔒</div>
-            <h2 style="margin-bottom: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;">OOPS BETA</h2>
-            <p style="margin-bottom: 25px; color: #888; font-size: 0.95rem; line-height: 1.4;">
-                Сайт в закрытом доступе.<br>Введите пароль тестировщика.
-            </p>
-            
-            <input type="text" id="beta-pass" placeholder="Код доступа" autocomplete="off" style="
-                width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #333;
-                background: #111; color: #fff; outline: none; text-align: center; margin-bottom: 15px;
-                font-size: 1.1rem; font-weight: 600; transition: border-color 0.3s;
-            ">
-            <button id="beta-btn" style="
-                width: 100%; padding: 14px; background: #fff; color: #000; font-weight: 700;
-                border: none; border-radius: 12px; cursor: pointer; text-transform: uppercase; font-size: 0.9rem;
-                transition: transform 0.1s;
-            ">Открыть доступ</button>
-            <p id="beta-error" style="color: #ff4444; margin-top: 15px; font-size: 0.9rem; font-weight: 500; display: none;">Неверный код</p>
+    <div id="beta-lock-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:2147483647; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-family:'Montserrat',sans-serif;">
+        <div style="text-align:center; max-width:320px; padding:20px;">
+            <div style="font-size:3rem; margin-bottom:20px;">🔒</div>
+            <h2 style="margin-bottom:10px; font-weight:800; letter-spacing:1px;">OOPS BETA</h2>
+            <p style="margin-bottom:25px; color:#888;">Доступ для тестеров</p>
+            <input type="text" id="beta-pass" placeholder="Код доступа" autocomplete="off" style="width:100%; padding:14px; border-radius:12px; border:1px solid #333; background:#111; color:#fff; outline:none; text-align:center; margin-bottom:15px; font-size:1.1rem; font-weight:600;">
+            <button id="beta-btn" style="width:100%; padding:14px; background:#fff; color:#000; font-weight:700; border:none; border-radius:12px; cursor:pointer;">ОТКРЫТЬ</button>
+            <p id="beta-error" style="color:#ff4444; margin-top:15px; display:none;">Неверный код</p>
         </div>
     </div>
 
     <script is:inline>
-        // Функция проверки доступа
-        function checkBetaAccess() {
+        function initLock() {
             const overlay = document.getElementById('beta-lock-overlay');
             const input = document.getElementById('beta-pass');
             const btn = document.getElementById('beta-btn');
             const error = document.getElementById('beta-error');
 
-            if (!overlay || !input || !btn) return;
-
-            // 1. Проверяем, есть ли пропуск
-            const isGranted = localStorage.getItem('oops_beta_access') === 'granted';
-
-            if (isGranted) {
-                // Если доступ есть - убираем замок и включаем прокрутку
-                overlay.style.display = 'none';
-                document.body.style.overflow = ''; 
+            if (localStorage.getItem('oops_beta_access') === 'granted') {
+                if(overlay) overlay.style.display = 'none';
+                document.body.style.overflow = '';
                 return;
             } else {
-                // Если доступа нет - показываем замок и блочим прокрутку
-                overlay.style.display = 'flex';
-                overlay.style.opacity = '1';
+                if(overlay) overlay.style.display = 'flex';
                 document.body.style.overflow = 'hidden';
             }
 
-            // Логика кнопки "Открыть"
-            const handleUnlock = () => {
+            const unlock = () => {
+                // .trim() убирает пробелы по краям!
                 if (input.value.trim() === 'oops-beta-2026') {
                     localStorage.setItem('oops_beta_access', 'granted');
-                    
-                    // Анимация исчезновения
-                    overlay.style.opacity = '0';
-                    setTimeout(() => {
-                        overlay.style.display = 'none';
-                        document.body.style.overflow = ''; // Возвращаем прокрутку
-                    }, 400);
+                    overlay.style.display = 'none';
+                    document.body.style.overflow = '';
                 } else {
                     error.style.display = 'block';
                     error.innerText = 'Неверный код';
-                    input.style.borderColor = '#ff4444';
-                    setTimeout(() => { input.style.borderColor = '#333'; }, 2000);
                 }
             };
 
-            // Чистим старые события (клонирование удаляет старые listener'ы)
-            const newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-            newBtn.addEventListener('click', handleUnlock);
+            // Клонируем элементы чтобы сбросить старые слушатели
+            const nBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(nBtn, btn);
+            nBtn.addEventListener('click', unlock);
 
-            const newInput = input.cloneNode(true);
-            input.parentNode.replaceChild(newInput, input);
-            newInput.addEventListener('keypress', (e) => { 
-                if(e.key === 'Enter') handleUnlock(); 
-            });
-            
-            // Фокус на поле ввода (для удобства)
-            if (window.innerWidth > 768) {
-                setTimeout(() => newInput.focus(), 100);
-            }
+            const nInp = input.cloneNode(true);
+            input.parentNode.replaceChild(nInp, input);
+            nInp.addEventListener('keypress', (e) => { if(e.key === 'Enter') unlock(); });
         }
 
-        // ЗАПУСК ЗАЩИТЫ:
-        // 1. Сразу при загрузке
-        checkBetaAccess();
-
-        // 2. При переходе на другую страницу (Astro Router)
-        document.addEventListener('astro:page-load', checkBetaAccess);
+        initLock();
+        document.addEventListener('astro:page-load', initLock);
     </script>
-    </body>
+</body>
 </html>
