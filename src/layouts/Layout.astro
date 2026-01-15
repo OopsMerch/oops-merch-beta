@@ -8,11 +8,9 @@ import '../styles/style.css';
 
 const { title } = Astro.props;
 
-// ПОЛУЧАЕМ ВСЕ ТОВАРЫ ИЗ ФАЙЛОВ JSON
+// ПОЛУЧАЕМ ВСЕ ТОВАРЫ ДЛЯ JS
 const allProducts = await getCollection('products');
-const productsJSON = JSON.stringify(allProducts.map(p => ({ ...p.data, slug: p.id }))); 
-// Примечание: p.id здесь - это имя файла (slug), но в JSON у тебя id: 1.
-// Чтобы старый JS работал, мы формируем массив, похожий на старый products.js
+// Формируем массив для старых скриптов
 const legacyProductsData = JSON.stringify(allProducts.map(p => ({ ...p.data, slug: p.id })));
 ---
 
@@ -48,66 +46,9 @@ const legacyProductsData = JSON.stringify(allProducts.map(p => ({ ...p.data, slu
 
     <div id="beta-lock-overlay" style="
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: #000; z-index: 999999; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; color: #fff;
-        font-family: 'Montserrat', sans-serif; transition: opacity 0.5s;
-    ">
-        <div style="text-align: center; max-width: 300px; padding: 20px;">
-            <div style="font-size: 3rem; margin-bottom: 20px;">🔒</div>
-            <h2 style="margin-bottom: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;">Oops Beta</h2>
-            <p style="margin-bottom: 20px; color: #666; font-size: 0.9rem;">Доступ только для тестеров</p>
-            
-            <input type="password" id="beta-pass" placeholder="Код доступа" style="
-                width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #333;
-                background: #111; color: #fff; outline: none; text-align: center; margin-bottom: 15px;
-                font-size: 1rem; font-weight: 600;
-            ">
-            <button id="beta-btn" style="
-                width: 100%; padding: 14px; background: #fff; color: #000; font-weight: 800;
-                border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase; font-size: 0.9rem;
-            ">Войти</button>
-            <p id="beta-error" style="color: #d00; margin-top: 15px; font-size: 0.8rem; display: none;">Неверный код</p>
-        </div>
-    </div>
-
-    <script is:inline>
-        (function() {
-            const overlay = document.getElementById('beta-lock-overlay');
-            const btn = document.getElementById('beta-btn');
-            const input = document.getElementById('beta-pass');
-            const error = document.getElementById('beta-error');
-            
-            // Если уже вводил - пропускаем
-            if (localStorage.getItem('oops_beta_access') === 'granted') {
-                if(overlay) overlay.style.display = 'none';
-                return;
-            }
-
-            const checkPass = () => {
-                if (input.value === 'oops-beta-2026') {
-                    localStorage.setItem('oops_beta_access', 'granted');
-                    overlay.style.opacity = '0';
-                    setTimeout(() => { overlay.style.display = 'none'; }, 500);
-                } else {
-                    error.style.display = 'block';
-                    input.style.borderColor = '#d00';
-                    setTimeout(() => { 
-                        error.style.display = 'none'; 
-                        input.style.borderColor = '#333';
-                    }, 2000);
-                }
-            };
-
-            if(btn) btn.addEventListener('click', checkPass);
-            if(input) input.addEventListener('keypress', (e) => { if(e.key === 'Enter') checkPass(); });
-        })();
-    </script>
-
-
-    <div id="beta-lock-overlay" style="
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: #000; z-index: 2147483647;
-        display: flex; flex-direction: column;
+        display: none; /* Скрыт по умолчанию, скрипт сам покажет если надо */
+        flex-direction: column;
         align-items: center; justify-content: center; color: #fff;
         font-family: 'Montserrat', sans-serif; transition: opacity 0.4s ease;
     ">
@@ -133,27 +74,41 @@ const legacyProductsData = JSON.stringify(allProducts.map(p => ({ ...p.data, slu
     </div>
 
     <script is:inline>
-        function initBetaProtection() {
+        // Функция проверки доступа
+        function checkBetaAccess() {
             const overlay = document.getElementById('beta-lock-overlay');
-            const btn = document.getElementById('beta-btn');
             const input = document.getElementById('beta-pass');
+            const btn = document.getElementById('beta-btn');
             const error = document.getElementById('beta-error');
-            
-            if (!overlay) return;
 
-            if (localStorage.getItem('oops_beta_access') === 'granted') {
+            if (!overlay || !input || !btn) return;
+
+            // 1. Проверяем, есть ли пропуск
+            const isGranted = localStorage.getItem('oops_beta_access') === 'granted';
+
+            if (isGranted) {
+                // Если доступ есть - убираем замок и включаем прокрутку
                 overlay.style.display = 'none';
+                document.body.style.overflow = ''; 
                 return;
             } else {
+                // Если доступа нет - показываем замок и блочим прокрутку
                 overlay.style.display = 'flex';
                 overlay.style.opacity = '1';
+                document.body.style.overflow = 'hidden';
             }
 
-            const checkPass = () => {
+            // Логика кнопки "Открыть"
+            const handleUnlock = () => {
                 if (input.value.trim() === 'oops-beta-2026') {
                     localStorage.setItem('oops_beta_access', 'granted');
+                    
+                    // Анимация исчезновения
                     overlay.style.opacity = '0';
-                    setTimeout(() => { overlay.style.display = 'none'; }, 400);
+                    setTimeout(() => {
+                        overlay.style.display = 'none';
+                        document.body.style.overflow = ''; // Возвращаем прокрутку
+                    }, 400);
                 } else {
                     error.style.display = 'block';
                     error.innerText = 'Неверный код';
@@ -162,22 +117,29 @@ const legacyProductsData = JSON.stringify(allProducts.map(p => ({ ...p.data, slu
                 }
             };
 
+            // Чистим старые события (клонирование удаляет старые listener'ы)
             const newBtn = btn.cloneNode(true);
             btn.parentNode.replaceChild(newBtn, btn);
-            newBtn.addEventListener('click', checkPass);
+            newBtn.addEventListener('click', handleUnlock);
 
             const newInput = input.cloneNode(true);
             input.parentNode.replaceChild(newInput, input);
             newInput.addEventListener('keypress', (e) => { 
-                if(e.key === 'Enter') checkPass(); 
+                if(e.key === 'Enter') handleUnlock(); 
             });
             
-            setTimeout(() => newInput.focus(), 100);
+            // Фокус на поле ввода (для удобства)
+            if (window.innerWidth > 768) {
+                setTimeout(() => newInput.focus(), 100);
+            }
         }
 
-        initBetaProtection();
-        document.addEventListener('astro:page-load', initBetaProtection);
-    </script>
+        // ЗАПУСК ЗАЩИТЫ:
+        // 1. Сразу при загрузке
+        checkBetaAccess();
 
-</body>
+        // 2. При переходе на другую страницу (Astro Router)
+        document.addEventListener('astro:page-load', checkBetaAccess);
+    </script>
+    </body>
 </html>
